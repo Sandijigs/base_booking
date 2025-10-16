@@ -43,7 +43,11 @@ cache/
 artifacts/
 typechain/
 typechain-types/
+ignition/deployments/**/build-info/
+ignition/deployments/**/artifacts/
 
 # Misc
 *.pem
 .vercel
+.env
+
