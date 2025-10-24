@@ -4,12 +4,21 @@ EventBase is a decentralized event ticketing platform built on Base Network that
 
 ## Key Features
 
-- NFT-Based Tickets: Each ticket is a unique ERC-721 token ensuring authenticity
-- Instant Settlements: Real-time revenue distribution using kaia's speed
-- Zero Fraud Risk: Blockchain-verified ticket authenticity
-- P2P Transfers: Secure ticket transfers between users
-- Dynamic Pricing: Smart contract-based pricing adjustments
-- Cross-Platform Integration: Metaverse-ready ticket system
+### Core Features ✅
+- **NFT-Based Tickets**: Each ticket is a unique ERC-721 token ensuring authenticity
+- **Instant Settlements**: Real-time revenue distribution using Base's L2 speed
+- **Zero Fraud Risk**: Blockchain-verified ticket authenticity
+- **P2P Transfers**: Secure ticket transfers between users
+- **Automated Refunds**: Smart contract-powered automatic refunds for canceled events
+
+### Phase 1 MVP Features (NEW) 🚀
+- **QR Code Verification**: Real-time ticket scanning and validation for event entry
+- **Secondary Marketplace**: Buy and sell tickets peer-to-peer with transparent pricing
+- **Stablecoin Payments**: Accept USDC/USDT to eliminate crypto volatility
+- **Refund Management**: User-friendly interface for claiming refunds
+- **Audit-Ready**: Comprehensive documentation and testing framework
+
+[**See Phase 1 Implementation Details →**](./PHASE1_IMPLEMENTATION.md)
 
 ## Architecture
 
@@ -38,38 +47,71 @@ Modern web application built with Next.js 15:
 - Compatibility: Full EVM compatibility
 - Token: Base (native token)
 
-## Contract Addresses (Base Sepolia Testnet)
+## Contract Addresses
 
-All contracts are deployed and verified on Base Sepolia:
+### Base Mainnet (Production) 🌐
+- **TicketNft**: `0x5476A8C9d2420FeDd7933b2035F5b3b446135441`
+- **EventTicketing**: `0x105003a5f52eA5D7d3a0872A467971bC31675376`
+- **TicketResaleMarket**: `0xF92BbC14d485e38e651Fb3F220366159e0569ff2`
+- **StablecoinPayment**: `[Pending Deployment]`
 
-- **TicketNft**: `0x8486E62b5975A4241818b564834A5f51ae2540B6` 
-  - [View on BaseScan](https://sepolia.basescan.org/address/0x8486E62b5975A4241818b564834A5f51ae2540B6)
-  
-- **EventTicketing**: `0xe3D37E5c036CC0bb4E0A170D49cc9212ABc8f985` 
-  - [View on BaseScan](https://sepolia.basescan.org/address/0xe3D37E5c036CC0bb4E0A170D49cc9212ABc8f985)
-  
-- **TicketResaleMarket**: `0x7BEe53CBeF0580Fdd2Bf1794E8111Ee8Fc93ed43` 
-  - [View on BaseScan](https://sepolia.basescan.org/address/0x7BEe53CBeF0580Fdd2Bf1794E8111Ee8Fc93ed43)
+### Base Sepolia Testnet 🧪
+- **TicketNft**: `0xc174678cc24B372a509A08dFA8d00f7AC678c459`
+- **EventTicketing**: `0x12f537d03EfAD03924A2ce12cd6ABDe02693d3eF`
+- **TicketResaleMarket**: `0x105003a5f52eA5D7d3a0872A467971bC31675376`
 
-**Deployment Date**: October 2024  
-**Network**: Base Sepolia Testnet (Chain ID: 84532)  
-**Status**: ✅ Active and Tested
+**Status**: ✅ Active and Tested | **Network**: Base L2 (Chain ID: 8453 / 84532)
+
+## Wallet Connection
+
+EventBase supports multiple wallet providers through WalletConnect v2:
+
+### Supported Wallets
+- **MetaMask** - Browser extension and mobile app
+- **Coinbase Wallet** - Integrated with Coinbase
+- **WalletConnect** - 300+ mobile wallets including:
+  - Trust Wallet
+  - Rainbow Wallet
+  - Zerion
+  - And many more
+
+### How to Connect
+1. Click "Connect Wallet" button in the navigation bar
+2. Select your preferred wallet from the modal
+3. Approve the connection in your wallet
+4. Switch to Base Sepolia network if prompted
+5. Start using the platform!
+
+**Network Configuration:**
+- Network: Base Sepolia Testnet
+- Chain ID: 84532
+- RPC URL: https://sepolia.base.org
+- Currency: ETH
+- Block Explorer: https://sepolia.basescan.org
 
 ## Usage
 
-### For Event Attendees
+### For Event Attendees 🎟️
 1. Connect your Web3 wallet to the platform
 2. Browse available events in the marketplace
-3. Purchase tickets with KAIA Kairos tokens
-4. Manage your ticket NFTs in your portfolio
-5. Transfer tickets to other users if needed
+3. Purchase tickets with BASE, USDC, or USDT
+4. View your NFT tickets with QR codes in "My Tickets"
+5. **NEW:** List tickets for resale on the secondary market
+6. **NEW:** Claim refunds for canceled events automatically
 
-### For Event Organizers
+### For Event Organizers 🎪
 1. Connect wallet and create new events
-2. Set event details, pricing, and capacity
-3. Monitor ticket sales in real-time
-4. Withdraw proceeds after event completion
-5. Cancel events with automatic refunds if needed
+2. Set event details, pricing, capacity, and payment method (BASE/USDC/USDT)
+3. Monitor ticket sales in real-time on dashboard
+4. **NEW:** Use QR verification portal to check in attendees
+5. Withdraw proceeds after event completion
+6. Cancel events with automatic batch refunds if needed
+
+### For Ticket Resellers 💰
+1. **NEW:** List your tickets on the resale marketplace
+2. Set your own prices (market-based)
+3. Automatic NFT transfer upon sale
+4. 2.5% platform fee (much lower than traditional platforms)
 
 ## Getting Started
 
@@ -113,19 +155,50 @@ Visit `http://localhost:3000` to see the application.
 ### Environment Variables
 
 **Smart Contract** (smcontract/.env):
-- `PRIVATE_KEY`: Your wallet private key (for deployment)
-- `BASESCAN_API_KEY`: BaseScan API key for contract verification
+```bash
+PRIVATE_KEY=your_wallet_private_key_here
+BASESCAN_API_KEY=your_basescan_api_key_here
+```
 
 **Frontend** (frontend/.env.local):
-- `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID`: Get from [WalletConnect Cloud](https://cloud.walletconnect.com)
+```bash
+# Pinata IPFS Configuration (for event image uploads)
+NEXT_PUBLIC_PINATA_JWT=your_pinata_jwt_token
+NEXT_PUBLIC_PINATA_GATEWAY=gateway.pinata.cloud
 
-⚠️ **Never commit .env files to git. They are included in .gitignore.**
+# WalletConnect Configuration (for wallet connections)
+NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id
+```
+
+#### Getting Your WalletConnect Project ID:
+
+1. Visit [WalletConnect Cloud](https://cloud.walletconnect.com)
+2. Sign in or create a free account
+3. Click "Create New Project"
+4. Enter your project name (e.g., "EventBase Ticketing")
+5. Copy your Project ID
+6. Add it to `frontend/.env.local` as shown above
+
+**Current Project ID** (for testing): `6b87a3c69cbd8b52055d7aef763148d6`
+
+⚠️ **Security Notes:**
+- Never commit .env files to git (they are in .gitignore)
+- Keep your private keys secure and never share them
+- WalletConnect Project IDs are safe to use in frontend code
+
+## Documentation
+
+- **[Phase 1 Implementation Guide](./PHASE1_IMPLEMENTATION.md)** - Complete MVP feature documentation
+- **[Audit Checklist](./AUDIT_CHECKLIST.md)** - Security audit preparation
+- **[Testing Guide](./TESTING_GUIDE.md)** - Comprehensive testing procedures
+- **[Project Summary](./PROJECT_SUMMARY.md)** - Technical overview
+- **[Setup Instructions](./SETUP_SUMMARY.md)** - Development setup
 
 ## Demo
 
-- Live Application: Coming Soon
-- Smart Contracts: Deployed on Base Sepolia Testnet
-- Block Explorer: [BaseScan](https://sepolia.basescan.org/)
+- **Live Application**: Coming Soon (Post-Audit)
+- **Smart Contracts**: Deployed on Base Mainnet & Sepolia
+- **Block Explorer**: [BaseScan](https://basescan.org/)
 
 ## Hackathon Submission
 

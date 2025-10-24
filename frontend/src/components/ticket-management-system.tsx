@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo, use } from "react"
-import { Calendar, QrCode, Send, ExternalLink, Copy, Search, MoreVertical, Download, Eye, RefreshCw } from "lucide-react"
+import { Calendar, QrCode, Send, ExternalLink, Copy, Search, MoreVertical, Download, Eye, RefreshCw, AlertTriangle } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -20,19 +20,19 @@ import { useAccount, useReadContract, useReadContracts, usePublicClient, useBloc
 import { WalletConnectButton } from "@/components/wallet-connect-button"
 import { useTransferTicket } from "@/hooks/use-contracts"
 import Link from "next/link"
-import { eventTicketingAbi, eventTicketingAddress } from "@/lib/contracts"
+import { eventTicketingAbi, eventTicketingAddress, ticketNftAbi, ticketNftAddress } from "@/lib/contracts"
 import { Abi, formatEther } from 'viem'
 import QRCode from 'qrcode';
 import Image from "next/image"
 
 interface NFTTicketDisplay {
-  id: string
-  tokenId: bigint
+  id: string // Event ID
+  tokenId: bigint // Actual NFT Token ID
   eventTitle: string
   eventTimestamp: number
   location: string
   status: 'upcoming' | 'past'
-  qrCode: string
+  qrCode: string // NFT Token ID for QR code
   price: string
   purchaseDate: string
   txHash: string | null
@@ -50,66 +50,129 @@ export function TicketManagementSystem() {
 
   const { isConnected, address } = useAccount()
   const { transferTicket, isPending: isTransferring, isConfirmed } = useTransferTicket()
-  const publicClient = usePublicClient()
+  const publicClient = usePublicClient({ chainId: 84532 }) // Base Sepolia
   const { data: blockNumber } = useBlockNumber()
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const _blockNumber = blockNumber
 
-  // Fetch all recent tickets
-  const { data: allTickets } = useReadContract({
+  // Get total number of tickets (events) created
+  const { data: totalTickets } = useReadContract({
     address: eventTicketingAddress,
     abi: eventTicketingAbi,
-    functionName: 'getRecentTickets',
-  }) as { data: Array<{ id: number, eventName: string, eventTimestamp: number, location: string, price: bigint }> | undefined }
-
-  // Check registration status for each ticket
-  const registrationChecks = useReadContracts({
-    contracts: (allTickets || []).map((ticket) => ({
-      address: eventTicketingAddress as `0x${string}`,
-      abi: eventTicketingAbi as Abi,
-      functionName: 'isRegistered',
-      args: [BigInt(ticket.id), address],
-    })),
-    query: {
-      enabled: !!allTickets && allTickets.length > 0 && !!address,
-    },
+    functionName: 'getTotalTickets',
   })
 
-  // Filter tickets to only include those registered by the user
-  const userTickets = useMemo(() => {
-    if (!allTickets || !registrationChecks.data) return []
+  // Check if user is registered for each event and get their NFT token ID
+  const [userTicketsData, setUserTicketsData] = useState<NFTTicketDisplay[]>([])
+  const [isLoadingTickets, setIsLoadingTickets] = useState(false)
 
-    return allTickets
-      .filter((_, index) => registrationChecks.data?.[index]?.result === true)
-      .map((ticket) => {
-        const now = Math.floor(Date.now() / 1000)
-        const isPast = Number(ticket.eventTimestamp) < now
+  useEffect(() => {
+    const fetchUserTickets = async () => {
+      if (!totalTickets || !address || !publicClient) return
+      
+      setIsLoadingTickets(true)
+      const tickets: NFTTicketDisplay[] = []
+      
+      try {
+        const ticketCount = Number(totalTickets)
+        
+        // Check each event
+        for (let eventId = 1; eventId <= ticketCount; eventId++) {
+          try {
+            // Check if user is registered for this event
+            const isRegistered = await publicClient.readContract({
+              address: eventTicketingAddress as `0x${string}`,
+              abi: eventTicketingAbi as Abi,
+              functionName: 'isRegistered',
+              args: [BigInt(eventId), address],
+            }) as boolean
 
-        return {
-          id: ticket.id.toString(),
-          tokenId: BigInt(ticket.id),
-          eventTitle: ticket.eventName,
-          eventTimestamp: Number(ticket.eventTimestamp),
-          location: ticket.location,
-          status: isPast ? "past" as const : "upcoming" as const,
-          qrCode: ticket.id.toString(),
-          price: formatEther(ticket.price) + " BASE",
-          purchaseDate: new Date(Number(ticket.eventTimestamp) * 1000).toISOString(),
-          txHash: ticketTransactions[ticket.id.toString()] || null,
-        } satisfies NFTTicketDisplay
-      })
-  }, [allTickets, registrationChecks.data, ticketTransactions])
+            if (!isRegistered) continue
+
+            // Get event details
+            const eventDetails = await publicClient.readContract({
+              address: eventTicketingAddress as `0x${string}`,
+              abi: eventTicketingAbi as Abi,
+              functionName: 'tickets',
+              args: [BigInt(eventId)],
+            }) as any
+
+            // Find the user's NFT token ID by checking the Registered event
+            // We'll use the event logs to find when this user registered
+            const registeredLogs = await publicClient.getLogs({
+              address: eventTicketingAddress as `0x${string}`,
+              event: {
+                type: 'event',
+                name: 'Registered',
+                inputs: [
+                  { type: 'uint256', indexed: true, name: 'ticketId' },
+                  { type: 'address', indexed: true, name: 'registrant' },
+                  { type: 'uint256', indexed: false, name: 'nftTokenId' },
+                ],
+              },
+              args: {
+                ticketId: BigInt(eventId),
+                registrant: address,
+              },
+              fromBlock: 'earliest',
+              toBlock: 'latest',
+            })
+
+            if (registeredLogs.length === 0) continue
+
+            // Get the NFT token ID from the event log
+            const nftTokenId = registeredLogs[0].args.nftTokenId as bigint
+
+            // Get NFT metadata
+            const metadata = await publicClient.readContract({
+              address: ticketNftAddress as `0x${string}`,
+              abi: ticketNftAbi as Abi,
+              functionName: 'getTicketMetadata',
+              args: [nftTokenId],
+            }) as any
+
+            const now = Math.floor(Date.now() / 1000)
+            const eventTimestamp = Number(metadata.eventTimestamp || 0)
+            const isPast = eventTimestamp < now
+
+            tickets.push({
+              id: String(eventId), // Event ID
+              tokenId: nftTokenId, // Actual NFT Token ID
+              eventTitle: metadata.eventName || "Unknown Event",
+              eventTimestamp: eventTimestamp,
+              location: metadata.location || "TBA",
+              status: isPast ? "past" as const : "upcoming" as const,
+              qrCode: nftTokenId.toString(), // Use NFT Token ID for QR code
+              price: formatEther(eventDetails.price) + " BASE",
+              purchaseDate: new Date(eventTimestamp * 1000).toISOString(),
+              txHash: ticketTransactions[nftTokenId.toString()] || null,
+            })
+          } catch (error) {
+            console.error(`Error fetching ticket for event ${eventId}:`, error)
+          }
+        }
+
+        setUserTicketsData(tickets)
+      } catch (error) {
+        console.error('Error fetching user tickets:', error)
+        toast.error('Failed to load tickets')
+      } finally {
+        setIsLoadingTickets(false)
+      }
+    }
+
+    fetchUserTickets()
+  }, [totalTickets, address, publicClient, ticketTransactions])
+
+  const userTickets = userTicketsData
 
   // Fetch transaction hashes for registered tickets
   useEffect(() => {
     const fetchTransactionHashes = async () => {
+      console.log('🔍 Checking dependencies for transaction fetch...')
+      
       if (!allTickets || !registrationChecks.data || !publicClient || !address) {
-        console.log('Missing dependencies for transaction fetch:', {
-          allTickets: !!allTickets,
-          registrationChecks: !!registrationChecks.data,
-          publicClient: !!publicClient,
-          address: !!address
-        })
+        console.warn('⚠️ Missing dependencies for transaction fetch')
         return
       }
 
@@ -117,54 +180,17 @@ export function TicketManagementSystem() {
         registrationChecks.data?.[index]?.result === true
       )
 
-      console.log('Fetching transactions for registered tickets:', registeredTickets.length)
+      console.log('✅ All dependencies available!')
+      console.log('📋 Total tickets:', allTickets.length)
+      console.log('🎫 Registered tickets:', registeredTickets.length)
 
       const txHashes: Record<string, string> = {}
       
       for (const ticket of registeredTickets) {
-        try {
-          console.log(`Fetching transaction for ticket ${ticket.id}...`)
-          
-          // Get logs for TicketRegistered event
-          // Get logs for Registered event
-          const logs = await publicClient.getLogs({
-            address: eventTicketingAddress,
-            event: {
-              type: 'event',
-              name: 'Registered',
-              inputs: [
-                { type: 'uint256', indexed: true, name: 'ticketId' },
-                { type: 'address', indexed: true, name: 'registrant' },
-                { type: 'uint256', indexed: false, name: 'nftTokenId' }
-              ]
-            },
-            args: {
-              ticketId: BigInt(ticket.id),
-              registrant: address.startsWith("0x") ? address : `0x${address}`
-            },
-            fromBlock: 'earliest',
-            toBlock: 'latest'
-          })
-          
-          console.log(`Found ${logs.length} registration logs for ticket ${ticket.id}`)
-          
-          if (logs.length > 0) {
-            // Get the most recent registration
-            const latestLog = logs[logs.length - 1]
-            txHashes[ticket.id.toString()] = latestLog.transactionHash
-            console.log(`Found registration transaction for ticket ${ticket.id}:`, latestLog.transactionHash)
-          } else {
-            // Fallback to mock hash if no logs found (for development only)
-            const mockTxHash = `0x${ticket.id.toString().padStart(64, '0')}`
-            txHashes[ticket.id.toString()] = mockTxHash
-            console.warn(`No registration logs found for ticket ${ticket.id}, using mock hash`)
-          }
-        } catch (error) {
-          console.error(`Failed to fetch transaction for ticket ${ticket.id}:`, error)
-          // In case of error, still set a mock hash to prevent UI issues
-          const mockTxHash = `0x${ticket.id.toString().padStart(64, '0')}`
-          txHashes[ticket.id.toString()] = mockTxHash
-        }
+        // Skip transaction hash fetching due to RPC limitations
+        // The transaction can be found on BaseScan explorer instead
+        console.log(`⏭️ Skipping transaction fetch for ticket ${ticket.id} (RPC limitations)`)
+        txHashes[ticket.id.toString()] = ''
       }
       
       console.log('Setting ticket transactions:', txHashes)
@@ -245,13 +271,12 @@ export function TicketManagementSystem() {
     try {
       const canvas = document.createElement('canvas');
       const qrData = [
-        `ID:${ticket.id}`,
+        `NFT Token ID:${ticket.qrCode}`,
+        `Event ID:${ticket.id}`,
         `Event:${ticket.eventTitle.substring(0, 30)}${ticket.eventTitle.length > 30 ? '...' : ''}`,
         `Date:${new Date(ticket.eventTimestamp * 1000).toLocaleDateString()}`,
         `Loc:${ticket.location.substring(0, 20)}`,
-        `Price:${ticket.price}`,
-        `Purchase Date:${ticket.purchaseDate}`,
-        `TxHash:${ticket.txHash}`
+        `Price:${ticket.price}`
       ].join('\n');
 
       await QRCode.toCanvas(canvas, qrData, {
@@ -492,7 +517,7 @@ export function TicketManagementSystem() {
 
                   <div className="flex items-center justify-between pt-2">
                     <div>
-                      <p className="text-xs text-slate-400">Ticket ID</p>
+                      <p className="text-xs text-slate-400">NFT Token ID</p>
                       <p className="font-mono text-sm text-[#dd7e9a]/80">#{ticket.qrCode}</p>
                     </div>
                     <div className="text-right">
@@ -505,7 +530,14 @@ export function TicketManagementSystem() {
             ))}
           </div>
 
-          {filteredTickets.length === 0 && (
+          {isLoadingTickets && (
+            <div className="text-center py-16">
+              <RefreshCw className="w-16 h-16 text-[#dd7e9a] mx-auto mb-4 animate-spin" />
+              <h3 className="text-xl font-bold text-white mb-2">Loading Your Tickets</h3>
+              <p className="text-slate-400">Fetching your NFT tickets from the blockchain...</p>
+            </div>
+          )}
+          {!isLoadingTickets && filteredTickets.length === 0 && (
             <div className="text-center py-16">
               <QrCode className="w-16 h-16 text-slate-400 mx-auto mb-4" />
               <h3 className="text-xl font-bold text-white mb-2">No Tickets Found</h3>
@@ -583,19 +615,40 @@ export function TicketManagementSystem() {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <h4 className="font-medium text-white">Transaction Details</h4>
-                    <div className="flex items-center gap-2">
-                      <code className="text-xs bg-slate-700 p-2 rounded flex-1 truncate text-slate-300">
-                        {selectedTicket.txHash}
-                      </code>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => selectedTicket.txHash && copyToClipboard(selectedTicket.txHash)}
-                        className="text-slate-400 hover:text-white"
-                      >
-                        <Copy className="w-3 h-3" />
-                      </Button>
-                    </div>
+                    {selectedTicket.txHash ? (
+                      <div className="flex items-center gap-2">
+                        <code className="text-xs bg-slate-700 p-2 rounded flex-1 truncate text-slate-300">
+                          {selectedTicket.txHash}
+                        </code>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => copyToClipboard(selectedTicket.txHash!)}
+                          className="text-slate-400 hover:text-white"
+                        >
+                          <Copy className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                          <AlertTriangle className="w-4 h-4 text-yellow-400 flex-shrink-0" />
+                          <div className="flex-1">
+                            <p className="text-sm text-yellow-200 font-medium">Transaction hash unavailable</p>
+                            <p className="text-xs text-yellow-300/80 mt-1">RPC endpoint is currently unavailable. You can find your transaction on Base Sepolia explorer.</p>
+                          </div>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(`https://sepolia.basescan.org/address/${address}`, "_blank")}
+                          className="w-full border-slate-600 text-slate-300 hover:border-yellow-500/50 hover:text-yellow-200"
+                        >
+                          <ExternalLink className="w-3 h-3 mr-2" />
+                          View All My Transactions
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -603,7 +656,7 @@ export function TicketManagementSystem() {
               <div className="flex gap-3">
                 <Button
                   variant="outline"
-                  onClick={() => selectedTicket.txHash && window.open(`https://sepolia.etherscan.io/tx/${selectedTicket.txHash}`, "_blank")}
+                  onClick={() => selectedTicket.txHash && window.open(`https://sepolia.basescan.org/tx/${selectedTicket.txHash}`, "_blank")}
                   disabled={!selectedTicket.txHash}
                   className="border-slate-600 text-slate-300 hover:border-[#dd7e9a] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -657,7 +710,7 @@ export function TicketManagementSystem() {
                 </div>
                 <div>
                   <p className="font-medium text-white">{selectedTicket.eventTitle}</p>
-                  <p className="text-sm text-slate-400">Ticket #{selectedTicket.id}</p>
+                  <p className="text-sm text-slate-400">NFT Token ID: #{selectedTicket.qrCode}</p>
                 </div>
                 <p className="text-xs text-slate-400">Show this QR code at the event entrance for verification</p>
               </div>
@@ -695,7 +748,7 @@ export function TicketManagementSystem() {
               <div className="space-y-4">
                 <div className="p-4 bg-slate-700 rounded-lg">
                   <p className="font-medium text-white">{selectedTicket.eventTitle}</p>
-                  <p className="text-sm text-slate-400">Ticket #{selectedTicket.qrCode}</p>
+                  <p className="text-sm text-slate-400">NFT Token ID: #{selectedTicket.qrCode}</p>
                 </div>
 
                 <div className="space-y-2">

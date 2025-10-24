@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Upload, Calendar, MapPin, Users, DollarSign, Sparkles, ArrowLeft, Clock, Image, FileText, Coins } from "lucide-react"
 import { eventTicketingAddress, eventTicketingAbi } from "@/lib/contracts"
 import { toast } from "sonner"
+import { uploadImageToIPFS } from "@/lib/ipfs"
 
 export default function CreateEvent() {
   const { address, isConnected } = useAccount()
@@ -26,6 +27,9 @@ export default function CreateEvent() {
     totalSupply: "",
     bannerImage: null as File | null,
   })
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string>("")
+  const [isUploading, setIsUploading] = useState(false)
+  const [imagePreview, setImagePreview] = useState<string>("")
 
   const { writeContract, data: hash, isPending: isSubmitting, error: writeError } = useWriteContract()
   const { isLoading: isTransactionPending, isSuccess: isTransactionSuccess, error: transactionError } = useWaitForTransactionReceipt({
@@ -62,6 +66,41 @@ export default function CreateEvent() {
       toast.error(`Transaction failed: ${transactionError.message}`)
     }
   }, [transactionError])
+
+  // Handle image file selection and preview
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setFormData({ ...formData, bannerImage: file })
+      
+      // Create preview
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  // Upload image to IPFS
+  const handleImageUpload = async () => {
+    if (!formData.bannerImage) {
+      toast.error("Please select an image first")
+      return
+    }
+
+    setIsUploading(true)
+    try {
+      const ipfsUrl = await uploadImageToIPFS(formData.bannerImage)
+      setUploadedImageUrl(ipfsUrl)
+      toast.success("✅ Image uploaded to IPFS!")
+    } catch (error) {
+      console.error("Upload error:", error)
+      toast.error(error instanceof Error ? error.message : "Failed to upload image to IPFS")
+    } finally {
+      setIsUploading(false)
+    }
+  }
 
   const createTicket = () => {
     if (!formData.title || !formData.description || !formData.date || !formData.time || !formData.location || !formData.price || !formData.totalSupply) {
@@ -100,7 +139,7 @@ export default function CreateEvent() {
         BigInt(eventDateTime.getTime() / 1000),
         BigInt(totalSupply),
         JSON.stringify({
-          bannerImage: formData.bannerImage ? formData.bannerImage.name : "",
+          image: uploadedImageUrl || "", // IPFS URL or empty
           date: formData.date,
           time: formData.time
         }),
@@ -116,7 +155,17 @@ export default function CreateEvent() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    createTicket()
+    
+    // If image is selected but not uploaded, upload it first
+    if (formData.bannerImage && !uploadedImageUrl) {
+      await handleImageUpload()
+      // Wait a bit for state to update
+      setTimeout(() => {
+        createTicket()
+      }, 1000)
+    } else {
+      createTicket()
+    }
   }
 
   const totalRevenue = formData.price && formData.totalSupply
@@ -256,8 +305,21 @@ export default function CreateEvent() {
                     <div className="space-y-2">
                       <Label htmlFor="banner" className="text-blue-200 font-medium flex items-center gap-2">
                         <Image className="h-4 w-4" />
-                        Event Banner
+                        Event Banner (Optional)
                       </Label>
+                      
+                      {/* Image Preview */}
+                      {imagePreview && (
+                        <div className="relative w-full h-48 rounded-xl overflow-hidden border-2 border-[#dd7e9a]/30">
+                          <img src={imagePreview} alt="Banner preview" className="w-full h-full object-cover" />
+                          {uploadedImageUrl && (
+                            <div className="absolute top-2 right-2 bg-green-500/90 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                              ✓ Uploaded to IPFS
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      
                       <div 
                         className="border-2 border-dashed border-[#dd7e9a]/50 rounded-xl p-8 text-center bg-gradient-to-br from-[#dd7e9a]/10 to-[#dd7e9a]/10 hover:border-[#dd7e9a]/70 transition-colors cursor-pointer group"
                         onClick={() => document.getElementById('banner')?.click()}
@@ -266,15 +328,43 @@ export default function CreateEvent() {
                         <p className="text-blue-200 font-medium mb-2">
                           {formData.bannerImage ? formData.bannerImage.name : "Upload event banner"}
                         </p>
-                        <p className="text-slate-400 text-sm">PNG, JPG up to 10MB</p>
+                        <p className="text-slate-400 text-sm">PNG, JPG up to 5MB</p>
                         <Input
                           id="banner"
                           type="file"
                           accept="image/*"
                           className="hidden"
-                          onChange={(e) => setFormData({ ...formData, bannerImage: e.target.files?.[0] || null })}
+                          onChange={handleImageChange}
                         />
                       </div>
+                      
+                      {/* Upload to IPFS Button */}
+                      {formData.bannerImage && !uploadedImageUrl && (
+                        <Button
+                          type="button"
+                          onClick={handleImageUpload}
+                          disabled={isUploading}
+                          className="w-full bg-blue-600 hover:bg-blue-700"
+                        >
+                          {isUploading ? (
+                            <>
+                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                              Uploading to IPFS...
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="h-4 w-4 mr-2" />
+                              Upload to IPFS
+                            </>
+                          )}
+                        </Button>
+                      )}
+                      
+                      {uploadedImageUrl && (
+                        <p className="text-xs text-green-400 flex items-center gap-2">
+                          ✓ Image uploaded successfully to IPFS!
+                        </p>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

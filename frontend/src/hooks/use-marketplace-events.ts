@@ -4,6 +4,13 @@ import { eventTicketingAbi, eventTicketingAddress } from "@/lib/contracts"
 import { formatEther } from "viem"
 import { toast } from "sonner"
 
+// Utility function to format price without floating point precision issues
+const formatPrice = (priceInEther: string): string => {
+  const num = parseFloat(priceInEther)
+  // Remove trailing zeros and unnecessary decimal points
+  return num.toFixed(8).replace(/\.?0+$/, '')
+}
+
 interface TicketData {
   id: number
   creator: string
@@ -96,21 +103,36 @@ export function useMarketplaceEvents() {
 
         // Parse metadata for additional info
         let category = "Event"
-        let image = "/metaverse-fashion-show.png"
+        let image = "/metaverse-fashion-show.png" // Default fallback
+        
         try {
-          if (ticket.metadata) {
+          if (ticket.metadata && ticket.metadata.trim() !== '') {
             const metadata = JSON.parse(ticket.metadata)
+            
+            // Check for image field (IPFS URL)
+            if (metadata.image && metadata.image.trim() !== '') {
+              image = metadata.image
+            }
+            // Fallback: check for old bannerImage field
+            else if (metadata.bannerImage && metadata.bannerImage.trim() !== '') {
+              // Try IPFS URL first, then local path
+              if (metadata.bannerImage.startsWith('http')) {
+                image = metadata.bannerImage
+              } else {
+                image = `/uploads/${metadata.bannerImage}`
+              }
+            }
+            
             category = metadata.category || "Event"
-            image = metadata.image || "/metaverse-fashion-show.png"
           }
-        } catch {
-          console.log("Could not parse metadata")
+        } catch (error) {
+          console.log(`Could not parse metadata for event ${ticket.id}:`, error)
         }
 
         return {
           id: Number(ticket.id),
           eventTitle: ticket.eventName,
-          price: `${formatEther(ticket.price)} BASE`,
+          price: `${formatPrice(formatEther(ticket.price))} BASE`,
           date: eventDate.toLocaleDateString('en-US', { 
             year: 'numeric', 
             month: 'short', 
@@ -128,6 +150,16 @@ export function useMarketplaceEvents() {
         }
       })
 
+      console.log('📊 Marketplace Events Summary:')
+      console.log('Total events:', transformedEvents.length)
+      console.log('Events by status:')
+      const statusGroups = transformedEvents.reduce((acc, event) => {
+        acc[event.status] = (acc[event.status] || 0) + 1
+        return acc
+      }, {} as Record<string, number>)
+      console.log(statusGroups)
+      console.log('All events:', transformedEvents)
+      
       setEvents(transformedEvents)
       setLoading(false)
     } else if (ticketsError) {

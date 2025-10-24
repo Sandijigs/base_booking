@@ -195,8 +195,8 @@ export function EventCard({ event }: EventCardProps) {
     }
   }, [receiptError])
 
-  // Check if user is on the correct network (only relevant when connected)
-  const isCorrectNetwork = !isConnected || chainId // base testnet - allow if not connected
+  // Check if user is on the correct network (Base Sepolia = 84532)
+  const isCorrectNetwork = !isConnected || chainId === 84532
 
   const isProcessing = purchasing || isPending || isConfirming
 
@@ -236,9 +236,9 @@ export function EventCard({ event }: EventCardProps) {
   return (
     <Card 
       onClick={handleCardClick}
-      className="group cursor-pointer bg-slate-800/50 border-slate-700 hover:border-[#dd7e9a]/50 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-[#dd7e9a]/10"
+      className="group cursor-pointer bg-slate-800/50 border-slate-700 hover:border-[#dd7e9a]/50 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-[#dd7e9a]/10 overflow-hidden"
     >
-      <CardContent className="p-0 h-full flex flex-col">
+      <CardContent className="p-0 h-full flex flex-col overflow-hidden">
         <div className="relative h-48 overflow-hidden rounded-t-lg">
           <Image
             src={imageError ? "/metaverse-fashion-show.png" : event.image || "/metaverse-fashion-show.png"}
@@ -265,27 +265,27 @@ export function EventCard({ event }: EventCardProps) {
           )}
         </div>
 
-        <div className="p-6 flex-1 flex flex-col">
-          <h3 className="text-lg font-semibold mb-3 text-white line-clamp-2 group-hover:text-[#dd7e9a]/80 transition-colors">
+        <div className="p-6 flex-1 flex flex-col min-w-0">
+          <h3 className="text-lg font-semibold mb-3 text-white line-clamp-2 group-hover:text-[#dd7e9a]/80 transition-colors break-words">
             {event.eventTitle}
           </h3>
 
-          <div className="space-y-2 text-xs text-slate-400 mb-4">
-            <div className="flex items-center gap-2">
+          <div className="space-y-2 text-xs text-slate-400 mb-4 min-w-0">
+            <div className="flex items-center gap-2 min-w-0">
               <Clock className="h-3 w-3 text-[#dd7e9a] flex-shrink-0" />
-              <span className="truncate">{formatEventDate(event.date)}</span>
+              <span className="truncate min-w-0">{formatEventDate(event.date)}</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 min-w-0">
               <MapPin className="h-3 w-3 text-blue-400 flex-shrink-0" />
-              <span className="truncate">{event.location}</span>
+              <span className="truncate min-w-0">{event.location}</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 min-w-0">
               <Users className="h-3 w-3 text-[#dd7e9a] flex-shrink-0" />
-              <span>{event.attendees.toLocaleString()} attendees</span>
+              <span className="truncate min-w-0">{event.attendees.toLocaleString()} attendees</span>
             </div>
           </div>
 
-          <div className="flex items-center justify-between mt-auto pt-2 border-t border-slate-700/50">
+          <div className="flex items-center justify-between gap-2 mt-auto pt-2 border-t border-slate-700/50 flex-wrap min-w-0">
             <span className="text-lg font-bold bg-gradient-to-r from-[#dd7e9a] to-[#dd7e9a] bg-clip-text text-transparent">
               {event.price}
             </span>

@@ -1,7 +1,12 @@
+// Base Mainnet Contract Addresses (Production)
+export const TicketNftAddress = "0x5476A8C9d2420FeDd7933b2035F5b3b446135441"
+export const EventTicketingAddress = "0x105003a5f52eA5D7d3a0872A467971bC31675376"
+export const TicketResaleMarketAddress = "0xF92BbC14d485e38e651Fb3F220366159e0569ff2"
+
 // Base Sepolia Testnet Contract Addresses
-export const TicketNftAddress = "0x8486E62b5975A4241818b564834A5f51ae2540B6"
-export const EventTicketingAddress = "0xe3D37E5c036CC0bb4E0A170D49cc9212ABc8f985"
-export const TicketResaleMarketAddress = "0x7BEe53CBeF0580Fdd2Bf1794E8111Ee8Fc93ed43"
+export const TicketNftAddressTestnet = "0xc174678cc24B372a509A08dFA8d00f7AC678c459"
+export const EventTicketingAddressTestnet = "0x12f537d03EfAD03924A2ce12cd6ABDe02693d3eF"
+export const TicketResaleMarketAddressTestnet = "0x105003a5f52eA5D7d3a0872A467971bC31675376"
 
 // Contract ABIs
 export const TicketNftAbi = 

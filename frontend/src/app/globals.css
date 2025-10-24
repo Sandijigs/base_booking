@@ -342,6 +342,16 @@
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
+
+  .word-break {
+    word-break: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+  }
+
+  .overflow-wrap-anywhere {
+    overflow-wrap: anywhere;
+  }
 }
 
 /* Spectacular keyframe animations */

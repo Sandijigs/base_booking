@@ -9,7 +9,10 @@ const navLinks = [
   { name: 'Dashboard', path: '/dashboard', requiresAuth: true },
   { name: 'Marketplace', path: '/marketplace', requiresAuth: true },
   { name: 'My Tickets', path: '/tickets', requiresAuth: true },
-  { name: 'Create Event', path: '/create-event', requiresAuth: true }
+  { name: 'Resale Market', path: '/resale', requiresAuth: true },
+  { name: 'Refunds', path: '/refunds', requiresAuth: true },
+  { name: 'Create Event', path: '/create-event', requiresAuth: true },
+  { name: 'Verify', path: '/verify', requiresAuth: true }
 ]
 
 function Header() {

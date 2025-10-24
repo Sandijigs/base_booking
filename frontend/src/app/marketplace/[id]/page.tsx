@@ -12,7 +12,14 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "sonner"
 import { useEventRegistration } from "@/hooks/use-event-registration"
-import { sepolia } from 'viem/chains'
+import { baseSepolia } from 'viem/chains'
+
+// Utility function to format price without floating point precision issues
+const formatPrice = (priceInEther: string): string => {
+  const num = parseFloat(priceInEther)
+  // Remove trailing zeros and unnecessary decimal points
+  return num.toFixed(8).replace(/\.?0+$/, '')
+}
 
 interface EventData {
   id: number
@@ -216,10 +223,33 @@ export default function EventDetailPage() {
 
           console.log('Final Status:', status)
 
+          // Parse metadata for IPFS image
+          let eventImage = "/metaverse-fashion-show.png" // Default fallback
+          try {
+            if (metadata && metadata.trim() !== '') {
+              const parsedMetadata = JSON.parse(metadata)
+              
+              // Check for image field (IPFS URL)
+              if (parsedMetadata.image && parsedMetadata.image.trim() !== '') {
+                eventImage = parsedMetadata.image
+              }
+              // Fallback: check for old bannerImage field
+              else if (parsedMetadata.bannerImage && parsedMetadata.bannerImage.trim() !== '') {
+                if (parsedMetadata.bannerImage.startsWith('http')) {
+                  eventImage = parsedMetadata.bannerImage
+                } else {
+                  eventImage = `/uploads/${parsedMetadata.bannerImage}`
+                }
+              }
+            }
+          } catch (err) {
+            console.log('Could not parse metadata for image:', err)
+          }
+
           setEvents({
             id: Number(id),
             creator,
-            price: formatEther(price),
+            price: formatPrice(formatEther(price)),
             eventName,
             description,
             date: formattedDate,
@@ -227,7 +257,7 @@ export default function EventDetailPage() {
             closed,
             canceled,
             status,
-            image: "/metaverse-fashion-show.png",
+            image: eventImage,
             maxSupply: maxSupplyNum,
             sold: soldNum,
             ticketsLeft,
@@ -258,8 +288,8 @@ export default function EventDetailPage() {
     }
 
     // Check network
-    if (chainId !== sepolia.id) {
-      toast.error("⚠️ Please switch to Sepolia testnet")
+    if (chainId !== baseSepolia.id) {
+      toast.error("⚠️ Please switch to Base Sepolia testnet")
       return
     }
 
@@ -342,7 +372,7 @@ export default function EventDetailPage() {
   }, [writeError]);
 
   const isProcessing = purchasing || isPending || isConfirming
-  const isCorrectNetwork = chainId === sepolia.id
+  const isCorrectNetwork = chainId === baseSepolia.id
 
   if (isLoading) {
     return (
@@ -422,23 +452,23 @@ export default function EventDetailPage() {
               )}
             </div>
 
-            <div className="space-y-6">
-              <div>
-                <h1 className="text-3xl md:text-4xl font-bold text-white mb-4 leading-tight">
+            <div className="space-y-6 min-w-0">
+              <div className="min-w-0">
+                <h1 className="text-3xl md:text-4xl font-bold text-white mb-4 leading-tight break-words">
                   {events?.eventName}
                 </h1>
 
-                <div className="flex flex-wrap gap-4 text-slate-300">
-                  <div className="flex items-center gap-2 bg-slate-800/30 rounded-lg px-3 py-2">
-                    <Calendar className="w-4 h-4 text-[#dd7e9a]" />
-                    <span className="text-sm">{events?.date}</span>
+                <div className="flex flex-wrap gap-4 text-slate-300 min-w-0">
+                  <div className="flex items-center gap-2 bg-slate-800/30 rounded-lg px-3 py-2 min-w-0">
+                    <Calendar className="w-4 h-4 text-[#dd7e9a] flex-shrink-0" />
+                    <span className="text-sm break-words">{events?.date}</span>
                   </div>
-                  <div className="flex items-center gap-2 bg-slate-800/30 rounded-lg px-3 py-2">
-                    <MapPin className="w-4 h-4 text-blue-400" />
-                    <span className="text-sm">{events?.location}</span>
+                  <div className="flex items-center gap-2 bg-slate-800/30 rounded-lg px-3 py-2 min-w-0">
+                    <MapPin className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                    <span className="text-sm truncate">{events?.location}</span>
                   </div>
-                  <div className="flex items-center gap-2 bg-slate-800/30 rounded-lg px-3 py-2">
-                    <Users className="w-4 h-4 text-green-400" />
+                  <div className="flex items-center gap-2 bg-slate-800/30 rounded-lg px-3 py-2 min-w-0">
+                    <Users className="w-4 h-4 text-green-400 flex-shrink-0" />
                     <span className="text-sm">{events?.sold} attending</span>
                   </div>
                 </div>
@@ -447,12 +477,12 @@ export default function EventDetailPage() {
               <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
                 <CardHeader>
                   <CardTitle className="text-xl text-white flex items-center gap-2">
-                    <Ticket className="w-5 h-5 text-[#dd7e9a]" />
+                    <Ticket className="w-5 h-5 text-[#dd7e9a] flex-shrink-0" />
                     About this event
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-slate-300 leading-relaxed text-base">
+                <CardContent className="min-w-0">
+                  <p className="text-slate-300 leading-relaxed text-base break-words overflow-wrap-anywhere">
                     {events?.description || "No description available for this event."}
                   </p>
                 </CardContent>
@@ -461,24 +491,24 @@ export default function EventDetailPage() {
               <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
                 <CardHeader>
                   <CardTitle className="text-xl text-white flex items-center gap-2">
-                    <Shield className="w-5 h-5 text-green-400" />
+                    <Shield className="w-5 h-5 text-green-400 flex-shrink-0" />
                     Event Organizer
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="flex items-center gap-4 p-4 bg-slate-800/30 rounded-lg">
-                    <div className="w-12 h-12 bg-gradient-to-br from-[#dd7e9a] to-[#dd7e9a] rounded-full flex items-center justify-center">
+                <CardContent className="min-w-0">
+                  <div className="flex items-center gap-4 p-4 bg-slate-800/30 rounded-lg min-w-0">
+                    <div className="w-12 h-12 bg-gradient-to-br from-[#dd7e9a] to-[#dd7e9a] rounded-full flex items-center justify-center flex-shrink-0">
                       <span className="text-white font-bold text-sm">
                         {events?.creator?.slice(2, 4).toUpperCase() || '??'}
                       </span>
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0 overflow-hidden">
                       <p className="font-medium text-white">Event Creator</p>
-                      <p className="text-sm text-slate-400 font-mono break-all">
+                      <p className="text-sm text-slate-400 font-mono break-all overflow-wrap-anywhere">
                         {events?.creator || 'Unknown creator'}
                       </p>
                     </div>
-                    <Badge variant="secondary" className="bg-green-500/20 text-green-400 border-green-500/30">
+                    <Badge variant="secondary" className="bg-green-500/20 text-green-400 border-green-500/30 flex-shrink-0">
                       <CheckCircle className="w-3 h-3 mr-1" />
                       Verified
                     </Badge>
@@ -493,16 +523,16 @@ export default function EventDetailPage() {
             <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="text-xl text-white flex items-center gap-2">
-                  <Ticket className="w-5 h-5 text-[#dd7e9a]" />
+                  <Ticket className="w-5 h-5 text-[#dd7e9a] flex-shrink-0" />
                   Get Your Ticket
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center p-4 bg-slate-800/30 rounded-lg">
-                    <div>
+              <CardContent className="min-w-0">
+                <div className="space-y-4 min-w-0">
+                  <div className="flex justify-between items-center p-4 bg-slate-800/30 rounded-lg gap-4">
+                    <div className="min-w-0">
                       <p className="text-slate-300 text-sm">Price per ticket</p>
-                      <p className="text-2xl font-bold bg-gradient-to-r from-[#dd7e9a] to-[#dd7e9a] bg-clip-text text-transparent">
+                      <p className="text-2xl font-bold bg-gradient-to-r from-[#dd7e9a] to-[#dd7e9a] bg-clip-text text-transparent break-words">
                         {events?.price} BASE
                       </p>
                     </div>
@@ -627,26 +657,26 @@ export default function EventDetailPage() {
             <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="text-xl text-white flex items-center gap-2">
-                  <ExternalLink className="w-5 h-5 text-blue-400" />
+                  <ExternalLink className="w-5 h-5 text-blue-400 flex-shrink-0" />
                   Event Details
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
                   <p className="text-slate-400 text-sm mb-1">Event ID</p>
-                  <p className="text-white font-mono">{events?.id}</p>
+                  <p className="text-white font-mono break-words">{events?.id}</p>
                 </div>
                 <div>
                   <p className="text-slate-400 text-sm mb-1">Contract Address</p>
-                  <div className="flex items-center gap-2">
-                    <p className="text-white font-mono text-sm break-all flex-1">
+                  <div className="flex items-start gap-2">
+                    <p className="text-white font-mono text-sm break-all flex-1 word-break">
                       {eventTicketingAddress}
                     </p>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => copyToClipboard(eventTicketingAddress, 'Contract Address')}
-                      className="p-1 h-auto text-slate-400 hover:text-white"
+                      className="p-1 h-auto text-slate-400 hover:text-white flex-shrink-0"
                     >
                       {copiedField === 'Contract Address' ? (
                         <CheckCircle className="w-4 h-4 text-green-400" />
@@ -659,15 +689,15 @@ export default function EventDetailPage() {
                 {events?.creator && (
                   <div>
                     <p className="text-slate-400 text-sm mb-1">Creator Address</p>
-                    <div className="flex items-center gap-2">
-                      <p className="text-white font-mono text-sm break-all flex-1">
+                    <div className="flex items-start gap-2">
+                      <p className="text-white font-mono text-sm break-all flex-1 word-break">
                         {events.creator}
                       </p>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => copyToClipboard(events.creator, 'Creator Address')}
-                        className="p-1 h-auto text-slate-400 hover:text-white"
+                        className="p-1 h-auto text-slate-400 hover:text-white flex-shrink-0"
                       >
                         {copiedField === 'Creator Address' ? (
                           <CheckCircle className="w-4 h-4 text-green-400" />

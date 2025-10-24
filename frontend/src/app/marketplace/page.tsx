@@ -22,8 +22,8 @@ export default function Marketplace() {
   const [activeTab, setActiveTab] = useState("upcoming")
   const { events, loading } = useMarketplaceEvents()
   
-  // Check if user is on the correct network
-  const isCorrectNetwork = chainId 
+  // Check if user is on the correct network (Base Sepolia = 84532)
+  const isCorrectNetwork = chainId === 84532 
 
   // Read contract data
   const { data: totalTickets, error: totalTicketsError } = useReadContract({
@@ -131,7 +131,7 @@ export default function Marketplace() {
                     <AlertCircle className="h-5 w-5 text-orange-400 flex-shrink-0" />
                     <div>
                       <p className="text-orange-200 font-medium">Wrong Network</p>
-                      <p className="text-orange-300 text-sm">Please switch to Sepolia testnet to interact with events.</p>
+                      <p className="text-orange-300 text-sm">Please switch to Base Sepolia testnet to interact with events.</p>
                     </div>
                   </div>
                 </CardContent>
