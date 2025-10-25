@@ -43,6 +43,7 @@ export interface MarketplaceEvent {
   trending: boolean
   createdAt: string
   originalPrice: bigint
+  creator: string // Event organizer's address
 }
 
 export function useMarketplaceEvents() {
@@ -87,7 +88,7 @@ export function useMarketplaceEvents() {
       } else {
         toast.success('Events loaded successfully')
       }
-      const transformedEvents: MarketplaceEvent[] = recentTickets.map((ticket: TicketData) => {
+      const transformedEvents = recentTickets.map((ticket: TicketData): MarketplaceEvent => {
         const eventDate = new Date(Number(ticket.eventTimestamp) * 1000)
         const now = new Date()
         const isPassed = eventDate < now
@@ -133,10 +134,10 @@ export function useMarketplaceEvents() {
           id: Number(ticket.id),
           eventTitle: ticket.eventName,
           price: `${formatPrice(formatEther(ticket.price))} BASE`,
-          date: eventDate.toLocaleDateString('en-US', { 
-            year: 'numeric', 
-            month: 'short', 
-            day: 'numeric' 
+          date: eventDate.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
           }),
           location: ticket.location,
           image: image,
@@ -147,6 +148,7 @@ export function useMarketplaceEvents() {
           trending: ticket.sold > (ticket.maxSupply * BigInt(7)) / BigInt(10), // Trending if 70% sold
           createdAt: eventDate.toISOString(),
           originalPrice: ticket.price,
+          creator: ticket.creator, // Include organizer address
         }
       })
 

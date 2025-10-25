@@ -1,8 +1,11 @@
 import { Button } from '@/components/ui/button';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import Image from 'next/image';
+import { useAccount } from 'wagmi';
 
 export const ConnectionButton = () => {
+  const { address } = useAccount();
+
   return (
     <ConnectButton.Custom>
       {({
@@ -76,11 +79,17 @@ export const ConnectionButton = () => {
                     )}
                     {chain.name}
                   </Button>
-                  <Button onClick={openAccountModal} type="button" variant='secondary'>
-                    {account.displayName}
-                    {account.displayBalance
-                      ? ` (${account.displayBalance})`
-                      : ' '}
+                  <Button
+                    onClick={openAccountModal}
+                    type="button"
+                    variant='secondary'
+                  >
+                    <div className="flex flex-col items-start">
+                      <span>{account.displayName}</span>
+                      {account.displayBalance && (
+                        <span className="text-xs opacity-75">{account.displayBalance}</span>
+                      )}
+                    </div>
                   </Button>
                 </div>
               );

@@ -166,40 +166,6 @@ export function TicketManagementSystem() {
 
   const userTickets = userTicketsData
 
-  // Fetch transaction hashes for registered tickets
-  useEffect(() => {
-    const fetchTransactionHashes = async () => {
-      console.log('🔍 Checking dependencies for transaction fetch...')
-      
-      if (!allTickets || !registrationChecks.data || !publicClient || !address) {
-        console.warn('⚠️ Missing dependencies for transaction fetch')
-        return
-      }
-
-      const registeredTickets = allTickets.filter((_, index) => 
-        registrationChecks.data?.[index]?.result === true
-      )
-
-      console.log('✅ All dependencies available!')
-      console.log('📋 Total tickets:', allTickets.length)
-      console.log('🎫 Registered tickets:', registeredTickets.length)
-
-      const txHashes: Record<string, string> = {}
-      
-      for (const ticket of registeredTickets) {
-        // Skip transaction hash fetching due to RPC limitations
-        // The transaction can be found on BaseScan explorer instead
-        console.log(`⏭️ Skipping transaction fetch for ticket ${ticket.id} (RPC limitations)`)
-        txHashes[ticket.id.toString()] = ''
-      }
-      
-      console.log('Setting ticket transactions:', txHashes)
-      setTicketTransactions(txHashes)
-    }
-
-    fetchTransactionHashes()
-  }, [allTickets, registrationChecks.data, publicClient, address])
-
   // Handle transfer completion
   useEffect(() => {
     if (isConfirmed) {

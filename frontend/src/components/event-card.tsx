@@ -26,6 +26,7 @@ interface MarketplaceEvent {
   trending: boolean
   createdAt: string
   originalPrice: bigint
+  creator: string
 }
 
 interface EventCardProps {
@@ -283,6 +284,14 @@ export function EventCard({ event }: EventCardProps) {
               <Users className="h-3 w-3 text-[#dd7e9a] flex-shrink-0" />
               <span className="truncate min-w-0">{event.attendees.toLocaleString()} attendees</span>
             </div>
+            {event.creator && (
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 text-xs text-slate-400">
+                  <Users className="h-3 w-3" />
+                  <span>Organizer: {event.creator.slice(0, 6)}...{event.creator.slice(-4)}</span>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center justify-between gap-2 mt-auto pt-2 border-t border-slate-700/50 flex-wrap min-w-0">
