@@ -189,15 +189,51 @@ NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id
 ## Documentation
 
 - **[Phase 1 Implementation Guide](./PHASE1_IMPLEMENTATION.md)** - Complete MVP feature documentation
+- **[Deployment Guide](./DEPLOYMENT_GUIDE.md)** - Vercel deployment instructions
 - **[Audit Checklist](./AUDIT_CHECKLIST.md)** - Security audit preparation
 - **[Testing Guide](./TESTING_GUIDE.md)** - Comprehensive testing procedures
 - **[Project Summary](./PROJECT_SUMMARY.md)** - Technical overview
 - **[Setup Instructions](./SETUP_SUMMARY.md)** - Development setup
 
+## Deployment
+
+### Deploy to Vercel (Recommended)
+
+The frontend is optimized for Vercel deployment with zero configuration needed.
+
+**Quick Deploy (5 minutes):**
+```bash
+cd frontend
+./deploy.sh
+```
+
+Or manually:
+```bash
+vercel login
+vercel --prod
+```
+
+**📚 Deployment Guides:**
+- 🚀 **[Quick Deploy Guide](./QUICK_DEPLOY.md)** - Deploy in 5 minutes
+- 📖 **[Full Deployment Guide](./DEPLOYMENT_GUIDE.md)** - Comprehensive guide
+
+**Includes:**
+- Step-by-step Vercel CLI deployment
+- Environment variables configuration  
+- Custom domain setup
+- CI/CD with Git integration
+- Security best practices & monitoring
+
+### Alternative Platforms
+- **Netlify**: Supports Next.js SSR
+- **AWS Amplify**: Full-stack deployment
+- **Railway**: Docker-based hosting
+- **Self-hosted**: `npm run build && npm start`
+
 ## Demo
 
-- **Live Application**: Coming Soon (Post-Audit)
-- **Smart Contracts**: Deployed on Base Mainnet & Sepolia
+- **Live Application**: Deploy using instructions above
+- **Smart Contracts**: ✅ Deployed on Base Mainnet & Sepolia
 - **Block Explorer**: [BaseScan](https://basescan.org/)
 
 ## Hackathon Submission
